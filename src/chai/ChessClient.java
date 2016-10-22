@@ -29,6 +29,7 @@ public class ChessClient extends Application {
 	
 	TextField commandField;
 	TextArea logArea;
+	boolean gameOver = false;
 	
 	BoardView boardView;
 	ChessGame game;
@@ -91,7 +92,7 @@ public class ChessClient extends Application {
 		Timeline timeline = new Timeline(1.0);
 		timeline.setCycleCount(Timeline.INDEFINITE);
 		timeline.getKeyFrames().add(
-				new KeyFrame(Duration.seconds(1), new GameHandler()));
+				new KeyFrame(Duration.seconds(.05), new GameHandler()));
 		timeline.playFromStart();
 		timeline.playFromStart();
 
@@ -114,16 +115,31 @@ public class ChessClient extends Application {
 			// setting activeMoveSource to null will cause a new one to be
 			// created:
 
-			MoveMaker mover = moveMaker[game.position.getToPlay()];
+			if(!gameOver) {
+				MoveMaker mover = moveMaker[game.position.getToPlay()];
 
-			if (mover.getState() == Worker.State.READY) {
-				mover.start(game.position);
-			} else if (mover.getState() == Worker.State.SUCCEEDED
-					&& boardView.ready()) {
-				short move = mover.getMove();
-				boardView.doMove(move);
-				mover.reset();
+				if (mover.getState() == Worker.State.READY) {
+					mover.start(game.position);
+				} else if (mover.getState() == Worker.State.SUCCEEDED
+						&& boardView.ready()) {
+					short move = mover.getMove();
+					boardView.doMove(move);
+					mover.reset();
+
+					if(winCheck(game.position) == 1) {
+						if(game.position.getToPlay() == 0) {
+							System.out.println("Black Player Won!");
+						} else {
+							System.out.println("White Player Won!");
+						}
+						gameOver = true;
+					} else if (winCheck(game.position) == 2) {
+						System.out.println("TIE GAME!");
+						gameOver = true;
+					}
+				}
 			}
+
 
 			// System.out.println("activeMoveSource state " +
 			// activeMoveSource.getState());
@@ -134,6 +150,15 @@ public class ChessClient extends Application {
 			// boardView.doMove(move);
 		}
 
+	}
+
+	public int winCheck(Position position) {
+		if(position.isTerminal()) {
+			return 1;
+		} else if(position.isStaleMate()) {
+			return 2;
+		}
+		return 0;
 	}
 
 	private class TextFieldMoveMaker implements MoveMaker,

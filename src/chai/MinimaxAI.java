@@ -4,21 +4,24 @@ import chesspresso.Chess;
 import chesspresso.move.IllegalMoveException;
 import chesspresso.position.Position;
 import javafx.geometry.Pos;
-import java.util.Random;
-
-import java.util.HashMap;
 
 /**
  * Created by kdonahoe on 10/17/16.
  */
 public class MinimaxAI implements ChessAI {
-    private int MAXDEPTH = 4;
+    private int MAXDEPTH = 3;
+    private int statesVisited;
+    private int depthReached;
 
     @Override
     public short getMove(Position position) throws IllegalMoveException {
         Position positionCopy = position;
+        statesVisited = 0;
         ChessMove chosenMove = minimax(positionCopy, 0);
-        System.out.println("Return value: " + chosenMove.value);
+        System.out.println();
+        System.out.println("Num States Visited: " + statesVisited);
+        System.out.println("Depth Reached: " + depthReached);
+        System.out.println("Return Value: " + chosenMove.value);
         return chosenMove.move;
     }
 
@@ -26,9 +29,9 @@ public class MinimaxAI implements ChessAI {
         short[] possibleMoves = position.getAllMoves();
         ChessMove bestMove = new ChessMove();
         bestMove.value = Short.MIN_VALUE;
-        int i=0;
         depth++;
         for(short move : possibleMoves) {
+            statesVisited++;
             position.doMove(move);
             ChessMove childMove = min_move(position, depth);
             bestMove.value = (short) Math.max(bestMove.value, childMove.value);
@@ -38,12 +41,25 @@ public class MinimaxAI implements ChessAI {
 
             position.undoMove();
         }
+
+//        position.doMove(bestMove.move);
+//        if(winCheck(position) == 1) {
+//            position.undoMove();
+//            System.out.println("Game won by: " + position.getToPlay());
+//        } else if(winCheck(position) == 2) {
+//            position.undoMove();
+//            System.out.println("Stale mate!");
+//        } else {
+//            position.undoMove();
+//        }
+
         return bestMove;
     }
 
     public ChessMove min_move(Position position, int depth) throws IllegalMoveException {
         if(cutoffTest(depth, position)) {
             ChessMove bestMove = new ChessMove(position.getLastShortMove(), maxUtilityFunction(position));
+            depthReached = depth;
             return bestMove;
         }
         depth++;
@@ -52,11 +68,12 @@ public class MinimaxAI implements ChessAI {
         bestMove.value = Short.MAX_VALUE;
         short[] possibleMoves = position.getAllMoves();
         for(short move : possibleMoves) {
+            statesVisited++;
             position.doMove(move);
             ChessMove childMove = max_move(position, depth);
             bestMove.value = (short) Math.min(bestMove.value, childMove.value);
             if(bestMove.value == childMove.value) {
-                bestMove.move = childMove.move;
+                bestMove.move = move;
             }
             position.undoMove();
         }
@@ -66,6 +83,7 @@ public class MinimaxAI implements ChessAI {
     public ChessMove max_move(Position position, int depth) throws IllegalMoveException {
         if(cutoffTest(depth, position)) {
             ChessMove bestMove = new ChessMove(position.getLastShortMove(), minUtilityFunction(position));
+            depthReached = depth;
             return bestMove;
         }
         depth++;
@@ -74,11 +92,12 @@ public class MinimaxAI implements ChessAI {
         bestMove.value = Short.MIN_VALUE;
         short[] possibleMoves = position.getAllMoves();
         for(short move : possibleMoves) {
+            statesVisited++;
             position.doMove(move);
             ChessMove childMove = min_move(position, depth);
             bestMove.value = (short) Math.max(bestMove.value, childMove.value);
             if(bestMove.value == childMove.value) {
-                bestMove.move = childMove.move;
+                bestMove.move = move;
             }
             position.undoMove();
         }
@@ -112,6 +131,15 @@ public class MinimaxAI implements ChessAI {
         }
 
         return position.getMaterial();
+    }
+
+    public int winCheck(Position position) {
+        if(position.isMate()) {
+            return 1;
+        } else if(position.isStaleMate()) {
+            return 2;
+        }
+        return 0;
     }
 
 }
